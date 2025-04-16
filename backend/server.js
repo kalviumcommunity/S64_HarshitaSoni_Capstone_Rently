@@ -22,6 +22,16 @@ app.get('/properties', (req, res) => {
   res.status(200).json(properties);
 });
 
+// POST endpoint to add a new property
+app.post('/properties', (req, res) => {
+  const newProperty = {
+    id: properties.length + 1,
+    ...req.body
+  };
+  properties.push(newProperty);
+  res.status(201).json({ message: 'Property added successfully', data: newProperty });
+});
+
 
 app.listen(PORT, () => {
   console.log(`Server is running on http://localhost:${PORT}`);
