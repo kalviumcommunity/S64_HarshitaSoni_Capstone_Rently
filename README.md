@@ -50,4 +50,3 @@ ________________________________________
 Conclusion
 By following this structured 30-day plan, we aim to develop a fully functional project that solves key rental management problems. Additional features will be implemented after successful project deployment to differentiate our platform from competitors.
 ________________________________________
-
