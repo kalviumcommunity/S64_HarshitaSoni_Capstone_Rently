@@ -1,10 +1,10 @@
 const mongoose = require('mongoose');
 
-const maintenanceRequestSchema = new mongoose.Schema({
-  property: { type: mongoose.Schema.Types.ObjectId, ref: 'Property', required: true },
-  tenant: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
-  description: { type: String, required: true },
-  status: { type: String, enum: ['pending', 'in_progress', 'resolved'], default: 'pending' },
-}, { timestamps: true });
+const requestSchema = new mongoose.Schema({
+  tenant: { type: mongoose.Schema.Types.ObjectId, ref: 'Tenant' },
+  property: { type: mongoose.Schema.Types.ObjectId, ref: 'Property' },
+  description: String,
+  status: { type: String, default: 'Pending' }
+});
 
-module.exports = mongoose.model('MaintenanceRequest', maintenanceRequestSchema);
+module.exports = mongoose.model('MaintenanceRequest', requestSchema);

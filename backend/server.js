@@ -2,6 +2,7 @@ const express = require('express');
 const dotenv = require('dotenv');
 const cors = require('cors');
 const connectDB = require('./config/db');
+const Property = require('./models/Property');
 const app = express();
 const PORT = 5000;
 
@@ -52,6 +53,20 @@ app.put('/properties/:id', (req, res) => {
   };
 
   res.status(200).json({ message: 'Property updated successfully', data: properties[propertyIndex] });
+});
+
+app.get('/properties/:id', async (req, res) => {
+  try {
+    const property = await Property.findById(req.params.id)
+      .populate('landlord')
+      .populate('tenants');
+    
+    if (!property) return res.status(404).json({ message: 'Property not found' });
+
+    res.status(200).json(property);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching property', error: err.message });
+  }
 });
 
 app.listen(PORT, () => {
