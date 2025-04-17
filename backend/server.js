@@ -1,10 +1,15 @@
 const express = require('express');
+const dotenv = require('dotenv');
 const cors = require('cors');
+const connectDB = require('./config/db');
 const app = express();
 const PORT = 5000;
 
 app.use(cors());
 app.use(express.json());
+
+dotenv.config()
+connectDB();
 
 // Dummy data for properties
 const properties = [
