@@ -1,35 +1,69 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
+import LandingPage from './pages/LandingPage';
+import SignUp from './pages/SignUp';
+import Login from './pages/Login';
+import ForgotPassword from './pages/ForgotPassword';
+import LandlordDashboard from './pages/LandlordDashboard';
+import TenantDashboard from './pages/TenantDashboard';
+import DiscoverProperties from './pages/DiscoverProperties';
+import ProtectedRoute from './components/ProtectedRoute';
+import PropertyOverview from './pages/PropertyOverview';
+import PropertyPage from './pages/PropertyPage';
+// import "./App.css";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>
-        <a href="https://vite.dev" target="_blank">
-          <img src={viteLogo} className="logo" alt="Vite logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
-      </div>
-      <h1>Vite + React</h1>
-      <div className="card">
-        <button onClick={() => setCount((count) => count + 1)}>
-          count is {count}
-        </button>
-        <p>
-          Edit <code>src/App.jsx</code> and save to test HMR
-        </p>
-      </div>
-      <p className="read-the-docs">
-        Click on the Vite and React logos to learn more
-      </p>
-    </>
-  )
+    <Router>
+      <Routes>
+        <Route path="/" element={<LandingPage />} />
+        <Route path="/signup" element={<SignUp />} />
+        <Route path="/signup/:role" element={<SignUp />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/forgot-password" element={<ForgotPassword />} />
+        <Route 
+          path="/landlord-dashboard" 
+          element={
+            <ProtectedRoute allowedRole="landlord">
+              <LandlordDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/tenant-dashboard" 
+          element={
+            <ProtectedRoute allowedRole="tenant">
+              <TenantDashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/discover" 
+          element={
+            <ProtectedRoute allowedRole="tenant">
+              <DiscoverProperties />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/property/:id" 
+          element={
+            <ProtectedRoute allowedRole="landlord">
+              <PropertyPage />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/property/:id/:section" 
+          element={
+            <ProtectedRoute allowedRole="landlord">
+              <PropertyPage />
+            </ProtectedRoute>
+          } 
+        />
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+export default App;

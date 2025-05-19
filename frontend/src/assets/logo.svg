@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="120" height="32" viewBox="0 0 120 32" xmlns="http://www.w3.org/2000/svg">
+  <g fill="#1a1a1a">
+    <path d="M8 6L16 2L24 6V18H20V10H12V18H8V6Z"/>
+    <text x="32" y="16" font-family="Georgia" font-size="18" font-weight="500">Rently</text>
+  </g>
+</svg> 
