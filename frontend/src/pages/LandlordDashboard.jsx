@@ -19,7 +19,7 @@ import {
 import Layout from '../components/Layout';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
-import CLOUDINARY_CONFIG from '../config/cloudinary';
+import CLOUDINARY_CONFIG, { isCloudinaryConfigured } from '../config/cloudinary';
 
 const drawerWidth = 200;
 
@@ -218,7 +218,7 @@ const LandlordDashboard = () => {
     rent: '',
     bedrooms: '',
     bathrooms: '',
-    area: '',
+    squareFeet: '',
   });
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [propertyToDelete, setPropertyToDelete] = useState(null);
@@ -244,6 +244,11 @@ const LandlordDashboard = () => {
 
   // Enhanced image upload handler
   const handleImageUpload = async (files) => {
+    if (!isCloudinaryConfigured) {
+      alert('Image uploads are currently disabled because Cloudinary is not configured. Please set VITE_CLOUDINARY_* env vars and restart the app.');
+      return;
+    }
+
     setUploadingImages(true);
     setUploadProgress(0);
     const uploadedUrls = [];
@@ -327,7 +332,7 @@ const LandlordDashboard = () => {
         city,
         bedrooms: Number(newProperty.bedrooms),
         bathrooms: Number(newProperty.bathrooms),
-        area: Number(newProperty.area)
+        squareFeet: Number(newProperty.squareFeet)
       }
     ]);
     setNewProperty({ 
@@ -335,14 +340,13 @@ const LandlordDashboard = () => {
       image: '', 
       address: '', 
       city: '',
-      area: '',
       status: 'Available', 
       availableDate: '', 
       description: '', 
       rent: '',
       bedrooms: '',
       bathrooms: '',
-      area: ''
+      squareFeet: ''
     });
     handleCloseModal();
   };
