@@ -31,7 +31,7 @@ function SignUp() {
     setError('');
     try {
       console.log('Signing up with:', formData);
-      const response = await fetch('/api/users', {
+      const response = await fetch('http://localhost:5000/api/users', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -58,6 +58,11 @@ function SignUp() {
           role: formData.role,
           ...data.user
         }));
+        
+        // Store the token if provided
+        if (data.token) {
+          localStorage.setItem('token', data.token);
+        }
         // Redirect based on role
         if (formData.role === 'landlord') {
           navigate('/landlord-dashboard', { replace: true });

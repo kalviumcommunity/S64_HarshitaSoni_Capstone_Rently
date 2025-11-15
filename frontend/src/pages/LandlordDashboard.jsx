@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Box, Grid, Typography, Card, CardContent, Button, List, ListItem, ListItemText, ListItemIcon, Drawer, IconButton, Menu, MenuItem, Modal, TextField, Chip, Avatar, ListSubheader, Divider, ListItemAvatar, Stepper, Step, StepLabel, StepConnector, CardMedia, Tooltip, Table, TableHead, TableRow, TableCell, TableBody, Paper, Link as MuiLink, LinearProgress } from '@mui/material';
+import { Box, Grid, Typography, Card, CardContent, Button, List, ListItem, ListItemText, ListItemIcon, Drawer, IconButton, Menu, MenuItem, Modal, TextField, Chip, Avatar, ListSubheader, Divider, ListItemAvatar, Stepper, Step, StepLabel, StepConnector, CardMedia, Tooltip, Table, TableHead, TableRow, TableCell, TableBody, Paper, Link as MuiLink, LinearProgress, Tabs, Tab } from '@mui/material';
 import { styled } from '@mui/material/styles';
 import { FaArrowLeft } from 'react-icons/fa';
 import {
@@ -16,6 +16,7 @@ import {
   Delete,
   AccountCircle,
 } from '@mui/icons-material';
+import { PieChart, Pie, Cell, BarChart, Bar, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip as RechartsTooltip, Legend, ResponsiveContainer } from 'recharts';
 import Layout from '../components/Layout';
 import { useNavigate } from 'react-router-dom';
 import { v4 as uuidv4 } from 'uuid';
@@ -177,6 +178,124 @@ const TimelineConnector = styled(StepConnector)(({ theme }) => ({
 }));
 
 const LandlordDashboard = () => {
+  // Temporary mock properties for demo preview if API has no data
+  const mockProperties = [
+    {
+      _id: 'mock-available-1',
+      title: 'River Heights',
+      address: '467, River Heights, Raj Nagar Extension, Ghaziabad',
+      city: 'Ghaziabad',
+      area: 'Raj Nagar Extension',
+      status: 'Available',
+      rent: 40000,
+      bhk: '2 BHK',
+      description: 'Bright 2 BHK apartment with balcony and covered parking. Close to metro and markets.',
+      images: ['/home.png', '/home.png'],
+      availableDate: '2025-12-01',
+      furnishing: 'Semi Furnished',
+      localities: ['Metro Nearby', 'Park Facing', 'Gated Community']
+    },
+    {
+      _id: 'mock-occupied-1',
+      title: 'Skyline Residency',
+      address: '221B Baker Street, Mumbai',
+      city: 'Mumbai',
+      area: 'Bandra',
+      status: 'Occupied',
+      rent: 55000,
+      bhk: '3 BHK',
+      description: 'Spacious 3 BHK with sea view and modular kitchen in a premium tower.',
+      images: ['/home.png', '/home.png', '/home.png'],
+      availableDate: '—',
+      furnishing: 'Fully Furnished',
+      localities: ['Sea View', 'Club House', 'Gym']
+    }
+  ];
+
+  // Mock related data for the occupied property
+  const mockTenants = [
+    {
+      id: 't-1',
+      name: 'John Doe',
+      email: 'john.doe@email.com',
+      phone: '+91 98765 43210',
+      propertyId: 'mock-occupied-1',
+      propertyTitle: 'Skyline Residency',
+      leaseStart: '2025-01-01',
+      leaseEnd: '2025-12-31',
+      rentStatus: 'Paid',
+      nextDueDate: '2025-12-01'
+    }
+  ];
+
+  const mockPayments = [
+    {
+      id: 'p-1',
+      propertyId: 'mock-occupied-1',
+      propertyTitle: 'Skyline Residency',
+      tenant: 'John Doe',
+      amount: 55000,
+      dueDate: '2025-11-01',
+      status: 'Paid',
+      paymentDate: '2025-11-01',
+      transactionId: 'TXN001'
+    },
+    {
+      id: 'p-2',
+      propertyId: 'mock-occupied-1',
+      propertyTitle: 'Skyline Residency',
+      tenant: 'John Doe',
+      amount: 55000,
+      dueDate: '2025-12-01',
+      status: 'Pending',
+      paymentDate: '-',
+      transactionId: '-'
+    }
+  ];
+
+  const mockMaintenance = [
+    {
+      id: 'm-1',
+      propertyId: 'mock-occupied-1',
+      propertyTitle: 'Skyline Residency',
+      tenant: 'John Doe',
+      issue: 'Leaky faucet in kitchen',
+      status: 'Resolved',
+      dateRaised: '2025-10-15',
+      lastUpdated: '2025-10-18'
+    },
+    {
+      id: 'm-2',
+      propertyId: 'mock-occupied-1',
+      propertyTitle: 'Skyline Residency',
+      tenant: 'John Doe',
+      issue: 'AC not cooling',
+      status: 'In Progress',
+      dateRaised: '2025-11-20',
+      lastUpdated: '2025-11-22'
+    }
+  ];
+
+  const mockNotices = [
+    {
+      id: 'n-1',
+      type: 'Rent Reminder',
+      recipient: 'John Doe',
+      dateSent: '2025-11-25',
+      message: 'Rent due on Dec 1',
+      status: 'Sent'
+    },
+    {
+      id: 'n-2',
+      type: 'Maintenance',
+      recipient: 'John Doe',
+      dateSent: '2025-11-21',
+      message: 'Technician visit scheduled between 2-4 PM',
+      status: 'Read'
+    }
+  ];
+
+  
   // Section refs
   const propertiesRef = useRef(null);
   const tenantsRef = useRef(null);
@@ -188,15 +307,46 @@ const LandlordDashboard = () => {
   const user = JSON.parse(localStorage.getItem('user'));
   const landlordKey = user && user.email ? `landlord_properties_${user.email}` : 'landlord_properties';
 
-  // Load properties for this landlord from localStorage or start with an empty array
-  const [properties, setProperties] = useState(() => {
-    const saved = localStorage.getItem(landlordKey);
-    return saved ? JSON.parse(saved) : [];
-  });
+  // Load properties from API
+  const [properties, setProperties] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  // Persist properties to localStorage for this landlord whenever they change
+  // Fetch properties from API
   useEffect(() => {
-    localStorage.setItem(landlordKey, JSON.stringify(properties));
+    const fetchProperties = async () => {
+      try {
+        const response = await fetch('http://localhost:5000/api/properties/landlord/my-properties', {
+          headers: {
+            'Authorization': `Bearer ${localStorage.getItem('token')}`
+          }
+        });
+        const data = await response.json();
+        if (data.success) {
+          const apiProps = data.properties || [];
+          setProperties(apiProps.length > 0 ? apiProps : mockProperties);
+        }
+      } catch (error) {
+        console.error('Error fetching properties:', error);
+        // Fallback to localStorage if API fails
+        const saved = localStorage.getItem(landlordKey);
+        if (saved) {
+          setProperties(JSON.parse(saved));
+        } else {
+          setProperties(mockProperties);
+        }
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProperties();
+  }, [landlordKey]);
+
+  // Persist properties to localStorage for backup
+  useEffect(() => {
+    if (properties.length > 0) {
+      localStorage.setItem(landlordKey, JSON.stringify(properties));
+    }
   }, [properties, landlordKey]);
 
   const [recentActivities] = useState([
@@ -244,7 +394,7 @@ const LandlordDashboard = () => {
 
   // Enhanced image upload handler
   const handleImageUpload = async (files) => {
-    if (!isCloudinaryConfigured) {
+    if (!isCloudinaryConfigured()) {
       alert('Image uploads are currently disabled because Cloudinary is not configured. Please set VITE_CLOUDINARY_* env vars and restart the app.');
       return;
     }
@@ -259,15 +409,25 @@ const LandlordDashboard = () => {
         const formData = new FormData();
         formData.append('file', file);
         formData.append('upload_preset', CLOUDINARY_CONFIG.uploadPreset);
-        formData.append('public_id', `rently_properties/${uuidv4()}`);
+        // Remove the public_id to let Cloudinary generate it automatically
+        // formData.append('public_id', `rently_properties/${uuidv4()}`);
 
+        console.log('Uploading to:', CLOUDINARY_CONFIG.uploadUrl);
+        console.log('Upload preset:', CLOUDINARY_CONFIG.uploadPreset);
+        console.log('Cloud name:', CLOUDINARY_CONFIG.cloudName);
+        
         const response = await fetch(CLOUDINARY_CONFIG.uploadUrl, {
           method: 'POST',
           body: formData,
         });
 
+        console.log('Response status:', response.status);
+        console.log('Response headers:', response.headers);
+        
         if (!response.ok) {
-          throw new Error('Upload failed');
+          const errorText = await response.text();
+          console.error('Upload failed with response:', errorText);
+          throw new Error(`Upload failed: ${response.status} - ${errorText}`);
         }
 
         const data = await response.json();
@@ -316,39 +476,65 @@ const LandlordDashboard = () => {
     setNewProperty((prev) => ({ ...prev, [name]: value }));
   };
 
-  const handleAddProperty = (e) => {
+  const handleAddProperty = async (e) => {
     e.preventDefault();
-    // Split address into area and city
-    const [area, ...cityParts] = newProperty.address.split(',').map(part => part.trim());
-    const city = cityParts.join(',');
-    
-    setProperties((prev) => [
-      ...prev,
-      { 
-        ...newProperty, 
-        id: Date.now(), 
-        rent: Number(newProperty.rent),
-        area,
+    try {
+      // Split address into area and city
+      const [area, ...cityParts] = newProperty.address.split(',').map(part => part.trim());
+      const city = cityParts.join(',');
+      
+      const propertyData = {
+        title: newProperty.name,
+        description: newProperty.description,
+        address: newProperty.address,
         city,
+        area,
+        rent: Number(newProperty.rent),
         bedrooms: Number(newProperty.bedrooms),
         bathrooms: Number(newProperty.bathrooms),
-        squareFeet: Number(newProperty.squareFeet)
+        squareFeet: Number(newProperty.squareFeet),
+        furnishing: newProperty.furnishing,
+        status: newProperty.status,
+        availableDate: newProperty.availableDate,
+        images: propertyImages,
+        localities: newProperty.localities || []
+      };
+
+      const response = await fetch('http://localhost:5000/api/properties', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify(propertyData)
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setProperties((prev) => [...prev, data.property]);
+        setNewProperty({ 
+          name: '', 
+          image: '', 
+          address: '', 
+          city: '',
+          status: 'Available', 
+          availableDate: '', 
+          description: '', 
+          rent: '',
+          bedrooms: '',
+          bathrooms: '',
+          squareFeet: ''
+        });
+        setPropertyImages([]);
+        handleCloseModal();
+      } else {
+        alert('Failed to create property: ' + (data.message || 'Unknown error'));
       }
-    ]);
-    setNewProperty({ 
-      name: '', 
-      image: '', 
-      address: '', 
-      city: '',
-      status: 'Available', 
-      availableDate: '', 
-      description: '', 
-      rent: '',
-      bedrooms: '',
-      bathrooms: '',
-      squareFeet: ''
-    });
-    handleCloseModal();
+    } catch (error) {
+      console.error('Error creating property:', error);
+      alert('Failed to create property. Please try again.');
+    }
   };
 
   const handleDelete = (id) => {
@@ -356,10 +542,28 @@ const LandlordDashboard = () => {
     setDeleteDialogOpen(true);
   };
 
-  const confirmDelete = () => {
-    setProperties((prev) => prev.filter((p) => p.id !== propertyToDelete));
-    setDeleteDialogOpen(false);
-    setPropertyToDelete(null);
+  const confirmDelete = async () => {
+    try {
+      const response = await fetch(`http://localhost:5000/api/properties/${propertyToDelete}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        }
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setProperties((prev) => prev.filter((p) => p._id !== propertyToDelete));
+        setDeleteDialogOpen(false);
+        setPropertyToDelete(null);
+      } else {
+        alert('Failed to delete property: ' + (data.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error deleting property:', error);
+      alert('Failed to delete property. Please try again.');
+    }
   };
 
   const cancelDelete = () => {
@@ -424,8 +628,73 @@ const LandlordDashboard = () => {
 
   const [localityInput, setLocalityInput] = useState('');
 
+  // ---------- Aggregations for charts (using current state/mocks) ----------
+  const propertyStatusData = (() => {
+    const list = properties && properties.length > 0 ? properties : mockProperties;
+    const counts = list.reduce((acc, p) => {
+      const key = p.status || 'Unknown';
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  })();
+
+  const rentStatusData = (() => {
+    const counts = (mockTenants || []).reduce((acc, t) => {
+      acc[t.rentStatus] = (acc[t.rentStatus] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+  })();
+
+  const monthlyCollectionData = (() => {
+    const paid = (mockPayments || []).filter(p => p.status === 'Paid');
+    const sums = paid.reduce((acc, p) => {
+      const month = new Date(p.paymentDate).toLocaleString('en-US', { month: 'short' });
+      acc[month] = (acc[month] || 0) + (p.amount || 0);
+      return acc;
+    }, {});
+    return Object.entries(sums).map(([month, amount]) => ({ month, amount }));
+  })();
+
+  const rentTrendData = monthlyCollectionData; // simple reuse for now
+
+  const maintenancePerPropertyData = (() => {
+    const sums = (mockMaintenance || []).reduce((acc, m) => {
+      acc[m.propertyTitle] = (acc[m.propertyTitle] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.entries(sums).map(([name, count]) => ({ name, count }));
+  })();
+
+  const maintenanceStatusData = (() => {
+    const sums = (mockMaintenance || []).reduce((acc, m) => {
+      acc[m.status] = (acc[m.status] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.entries(sums).map(([name, value]) => ({ name, value }));
+  })();
+
+  const noticeTypeData = (() => {
+    const sums = (mockNotices || []).reduce((acc, n) => {
+      acc[n.type] = (acc[n.type] || 0) + 1;
+      return acc;
+    }, {});
+    return Object.entries(sums).map(([name, value]) => ({ name, value }));
+  })();
+
+  const totalRentCollected = (mockPayments || [])
+    .filter(p => p.status === 'Paid')
+    .reduce((sum, p) => sum + (p.amount || 0), 0);
+  const pendingRent = (mockPayments || [])
+    .filter(p => p.status === 'Pending')
+    .reduce((sum, p) => sum + (p.amount || 0), 0);
+  const thisMonthIncome = (mockPayments || [])
+    .filter(p => p.status === 'Paid' && p.paymentDate && new Date(p.paymentDate).getMonth() === new Date().getMonth())
+    .reduce((sum, p) => sum + (p.amount || 0), 0);
+
   return (
-    <Layout>
+    <Layout hideNav>
       <Box sx={{ display: 'flex', minHeight: '100vh', background: '#F8F9F9' }}>
         {/* Sidebar */}
         <Sidebar variant="permanent" anchor="left">
@@ -469,11 +738,30 @@ const LandlordDashboard = () => {
 
           {!selectedProperty ? (
             // Properties List View
+            <>
             <section ref={propertiesRef} style={{ width: '100%', marginTop: 24 }}>
-            <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Properties</Typography>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Properties</Typography>
+
+              {/* Properties Status Pie Chart */}
+              <Card sx={{ mb: 3, borderRadius: 3 }}>
+                <CardContent>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Available vs Occupied</Typography>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie data={propertyStatusData} cx="50%" cy="50%" labelLine={false} outerRadius={90} dataKey="value">
+                        {propertyStatusData.map((entry, index) => (
+                          <Cell key={`p-cell-${index}`} fill={["#00C49F", "#FF8042", "#FFBB28", "#8884d8"][index % 4]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
               <Grid container spacing={3} sx={{ mb: 2, flexWrap: 'nowrap', overflowX: 'auto' }}>
                 {properties.map((property) => (
-                  <Grid item key={property.id} sx={{ minWidth: 270, maxWidth: 320 }}>
+                  <Grid item key={property._id} sx={{ minWidth: 270, maxWidth: 320 }}>
                     <Card 
                       sx={{ 
                         borderRadius: 3, 
@@ -492,7 +780,7 @@ const LandlordDashboard = () => {
                         component="img"
                         height="140"
                         image={Array.isArray(property.images) && property.images.length > 0 ? property.images[0] : property.image || '/placeholder-property.jpg'}
-                        alt={property.name}
+                        alt={property.title}
                         sx={{ borderTopLeftRadius: 12, borderTopRightRadius: 12 }}
                       />
                       <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', gap: 1, zIndex: 2 }}>
@@ -514,7 +802,7 @@ const LandlordDashboard = () => {
                             color="error" 
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleDelete(property.id);
+                              handleDelete(property._id);
                             }}
                           >
                             <Delete />
@@ -522,7 +810,7 @@ const LandlordDashboard = () => {
                         </Tooltip>
                       </Box>
                       <CardContent sx={{ pb: '16px !important' }}>
-                    <Typography variant="h6" sx={{ fontWeight: 600 }}>{property.name}</Typography>
+                    <Typography variant="h6" sx={{ fontWeight: 600 }}>{property.title}</Typography>
                         <Typography variant="body2" color="text.secondary">{property.address}</Typography>
                         <Typography variant="body2" sx={{ 
                           color: property.status === 'Available' ? 'green' : 
@@ -564,7 +852,284 @@ const LandlordDashboard = () => {
                   </Card>
                 </Grid>
               </Grid>
+
+              {/* Properties Table */}
+              <Card sx={{ mt: 2, borderRadius: 3 }}>
+                <CardContent>
+                  <Table>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell><strong>Property Name</strong></TableCell>
+                        <TableCell><strong>Address</strong></TableCell>
+                        <TableCell><strong>Rent (₹/month)</strong></TableCell>
+                        <TableCell><strong>Status</strong></TableCell>
+                        <TableCell><strong>Tenant</strong></TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {(properties && properties.length > 0 ? properties : mockProperties).map((p) => {
+                        const tenant = mockTenants.find(t => t.propertyTitle === p.title || t.propertyId === p._id);
+                        return (
+                          <TableRow key={p._id}>
+                            <TableCell>{p.title}</TableCell>
+                            <TableCell>{p.address}</TableCell>
+                            <TableCell>{(p.rent || 0).toLocaleString()}</TableCell>
+                            <TableCell>{p.status}</TableCell>
+                            <TableCell>{tenant ? tenant.name : '—'}</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
             </section>
+
+            {/* Tenants Section (anchor for sidebar) */}
+            <section ref={tenantsRef} style={{ width: '100%', marginTop: 48 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Tenants</Typography>
+
+              {/* Rent status donut */}
+              <Card sx={{ mb: 3, borderRadius: 3 }}>
+                <CardContent>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Rent Payment Status</Typography>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie data={rentStatusData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} label dataKey="value">
+                        {rentStatusData.map((entry, index) => (
+                          <Cell key={`t-cell-${index}`} fill={["#00C49F", "#FFBB28", "#ff4d4f"][index % 3]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Tenant Name</strong></TableCell>
+                    <TableCell><strong>Property</strong></TableCell>
+                    <TableCell><strong>Contact</strong></TableCell>
+                    <TableCell><strong>Lease Period</strong></TableCell>
+                    <TableCell><strong>Rent Status</strong></TableCell>
+                    <TableCell><strong>Next Due Date</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {mockTenants.map(t => (
+                    <TableRow key={t.id}>
+                      <TableCell>{t.name}</TableCell>
+                      <TableCell>{t.propertyTitle}</TableCell>
+                      <TableCell>{t.email} / {t.phone}</TableCell>
+                      <TableCell>{t.leaseStart} - {t.leaseEnd}</TableCell>
+                      <TableCell>{t.rentStatus}</TableCell>
+                      <TableCell>{t.nextDueDate}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </section>
+
+            {/* Rent & Payments Section (anchor for sidebar) */}
+            <section ref={paymentsRef} style={{ width: '100%', marginTop: 48 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Rent & Payments</Typography>
+
+              {/* Summary cards */}
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={12} md={4}>
+                  <Card><CardContent>
+                    <Typography variant="body2" color="text.secondary">Total Rent Collected</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#00C49F' }}>₹{totalRentCollected.toLocaleString()}</Typography>
+                  </CardContent></Card>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Card><CardContent>
+                    <Typography variant="body2" color="text.secondary">Pending Rent</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#FFBB28' }}>₹{pendingRent.toLocaleString()}</Typography>
+                  </CardContent></Card>
+                </Grid>
+                <Grid item xs={12} md={4}>
+                  <Card><CardContent>
+                    <Typography variant="body2" color="text.secondary">This Month's Income</Typography>
+                    <Typography variant="h5" sx={{ fontWeight: 700, color: '#0088FE' }}>₹{thisMonthIncome.toLocaleString()}</Typography>
+                  </CardContent></Card>
+                </Grid>
+              </Grid>
+
+              {/* Charts */}
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={12} md={6}>
+                  <Card><CardContent>
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>Monthly Rent Collection</Typography>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={monthlyCollectionData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <RechartsTooltip />
+                        <Legend />
+                        <Bar dataKey="amount" fill="#8884d8" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent></Card>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Card><CardContent>
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>Rent Trends Over Time</Typography>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <LineChart data={rentTrendData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="month" />
+                        <YAxis />
+                        <RechartsTooltip />
+                        <Legend />
+                        <Line type="monotone" dataKey="amount" stroke="#82ca9d" />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </CardContent></Card>
+                </Grid>
+              </Grid>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Property</strong></TableCell>
+                    <TableCell><strong>Tenant</strong></TableCell>
+                    <TableCell><strong>Rent (₹)</strong></TableCell>
+                    <TableCell><strong>Due Date</strong></TableCell>
+                    <TableCell><strong>Status</strong></TableCell>
+                    <TableCell><strong>Payment Date</strong></TableCell>
+                    <TableCell><strong>Transaction ID</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {mockPayments.map(p => (
+                    <TableRow key={p.id}>
+                      <TableCell>{p.propertyTitle}</TableCell>
+                      <TableCell>{p.tenant}</TableCell>
+                      <TableCell>{p.amount.toLocaleString()}</TableCell>
+                      <TableCell>{p.dueDate}</TableCell>
+                      <TableCell>{p.status}</TableCell>
+                      <TableCell>{p.paymentDate}</TableCell>
+                      <TableCell>{p.transactionId}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </section>
+
+            {/* Maintenance Requests Section (anchor for sidebar) */}
+            <section ref={maintenanceRef} style={{ width: '100%', marginTop: 48 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Maintenance Requests</Typography>
+
+              <Grid container spacing={2} sx={{ mb: 2 }}>
+                <Grid item xs={12} md={6}>
+                  <Card><CardContent>
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>Requests per Property</Typography>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <BarChart data={maintenancePerPropertyData}>
+                        <CartesianGrid strokeDasharray="3 3" />
+                        <XAxis dataKey="name" />
+                        <YAxis />
+                        <RechartsTooltip />
+                        <Legend />
+                        <Bar dataKey="count" fill="#8884d8" />
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </CardContent></Card>
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <Card><CardContent>
+                    <Typography variant="subtitle1" sx={{ mb: 1 }}>Status Distribution</Typography>
+                    <ResponsiveContainer width="100%" height={260}>
+                      <PieChart>
+                        <Pie data={maintenanceStatusData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} label dataKey="value">
+                          {maintenanceStatusData.map((entry, index) => (
+                            <Cell key={`m-cell-${index}`} fill={["#FFBB28", "#00C49F", "#FF8042"][index % 3]} />
+                          ))}
+                        </Pie>
+                        <RechartsTooltip />
+                        <Legend />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  </CardContent></Card>
+                </Grid>
+              </Grid>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Request ID</strong></TableCell>
+                    <TableCell><strong>Property</strong></TableCell>
+                    <TableCell><strong>Tenant</strong></TableCell>
+                    <TableCell><strong>Issue</strong></TableCell>
+                    <TableCell><strong>Status</strong></TableCell>
+                    <TableCell><strong>Date Raised</strong></TableCell>
+                    <TableCell><strong>Last Updated</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {mockMaintenance.map(m => (
+                    <TableRow key={m.id}>
+                      <TableCell>{m.id.toUpperCase()}</TableCell>
+                      <TableCell>{m.propertyTitle}</TableCell>
+                      <TableCell>{m.tenant}</TableCell>
+                      <TableCell>{m.issue}</TableCell>
+                      <TableCell>{m.status}</TableCell>
+                      <TableCell>{m.dateRaised}</TableCell>
+                      <TableCell>{m.lastUpdated}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </section>
+
+            {/* Reminders & Notices Section (anchor for sidebar) */}
+            <section ref={remindersRef} style={{ width: '100%', marginTop: 48 }}>
+              <Typography variant="h5" sx={{ fontWeight: 700, mb: 2 }}>Reminders & Notices</Typography>
+
+              <Card sx={{ mb: 2 }}>
+                <CardContent>
+                  <Typography variant="subtitle1" sx={{ mb: 1 }}>Notice Types</Typography>
+                  <ResponsiveContainer width="100%" height={260}>
+                    <PieChart>
+                      <Pie data={noticeTypeData} cx="50%" cy="50%" outerRadius={90} labelLine={false} label dataKey="value">
+                        {noticeTypeData.map((entry, index) => (
+                          <Cell key={`n-cell-${index}`} fill={["#0088FE", "#00C49F", "#FFBB28", "#FF8042"][index % 4]} />
+                        ))}
+                      </Pie>
+                      <RechartsTooltip />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell><strong>Notice ID</strong></TableCell>
+                    <TableCell><strong>Type</strong></TableCell>
+                    <TableCell><strong>Recipient</strong></TableCell>
+                    <TableCell><strong>Date Sent</strong></TableCell>
+                    <TableCell><strong>Message</strong></TableCell>
+                    <TableCell><strong>Status</strong></TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {mockNotices.map(n => (
+                    <TableRow key={n.id}>
+                      <TableCell>{`NOT-${n.id}`}</TableCell>
+                      <TableCell>{n.type}</TableCell>
+                      <TableCell>{n.recipient}</TableCell>
+                      <TableCell>{n.dateSent}</TableCell>
+                      <TableCell>{n.message}</TableCell>
+                      <TableCell>{n.status}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </section>
+            </>
           ) : (
             // Property Detail View
             <Box sx={{ width: '100%' }}>

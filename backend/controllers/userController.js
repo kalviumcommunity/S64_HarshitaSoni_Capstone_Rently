@@ -27,7 +27,14 @@ exports.registerUser = async (req, res) => {
     const user = new User({ role, name, email, password: hashedPassword });
     await user.save();
 
-    // Respond with the user data (excluding password)
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
+
+    // Respond with the user data and token
     res.status(201).json({
       success: true,
       user: {
@@ -35,7 +42,8 @@ exports.registerUser = async (req, res) => {
         name: user.name,
         email: user.email,
         role: user.role
-      }
+      },
+      token
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -57,9 +65,17 @@ exports.loginUser = async (req, res) => {
       return res.status(400).json({ success: false, message: 'Invalid email or password' });
     }
 
-    // Respond with user data (excluding password)
+    // Generate JWT token
+    const token = jwt.sign(
+      { userId: user._id, email: user.email, role: user.role },
+      process.env.JWT_SECRET || 'your-secret-key',
+      { expiresIn: '7d' }
+    );
+
+    // Respond with user data and token
     res.status(200).json({
       success: true,
+      token,
       user: {
         _id: user._id,
         name: user.name,

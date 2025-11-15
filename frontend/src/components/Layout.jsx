@@ -3,12 +3,13 @@ import { Link } from 'react-router-dom';
 import { FaFacebook, FaTwitter, FaInstagram, FaLinkedin, FaUserCircle } from 'react-icons/fa';
 import { Menu, MenuItem, IconButton } from '@mui/material';
 
-function Layout({ children }) {
+function Layout({ children, hideNav = false }) {
   const [anchorEl, setAnchorEl] = useState(null);
   const handleProfileClick = (event) => setAnchorEl(event.currentTarget);
   const handleProfileClose = () => setAnchorEl(null);
   return (
     <div className="page-container">
+      {!hideNav && (
       <nav className="navbar">
         <Link to="/" className="logo">
           <img src="/logo.png" alt="Rently Logo" style={{ height: '40px', width: 'auto', objectFit: 'contain' }} />
@@ -29,6 +30,7 @@ function Layout({ children }) {
           </Menu>
         </div>
       </nav>
+      )}
 
       <main className="main-content">
         {children}

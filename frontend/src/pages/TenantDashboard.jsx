@@ -181,14 +181,47 @@ const TenantDashboard = () => {
   const handleRequestImage = (e) => {
     setNewRequest({ ...newRequest, image: e.target.files[0] });
   };
-  const handleRequestSubmit = (e) => {
+  const handleRequestSubmit = async (e) => {
     e.preventDefault();
     if (!newRequest.desc) return;
-    setRequests([
-      ...requests,
-      { id: Date.now(), desc: newRequest.desc, status: 'Pending', date: new Date().toISOString().slice(0, 10) },
-    ]);
-    setNewRequest({ desc: '', image: null });
+    
+    try {
+      // Get the tenant's property (assuming they have one)
+      const propertyId = mockTenant.property.id; // This should come from API
+      
+      const response = await fetch('http://localhost:5000/api/maintenance-requests', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('token')}`
+        },
+        body: JSON.stringify({
+          property: propertyId,
+          description: newRequest.desc,
+          priority: 'medium'
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        setRequests([
+          ...requests,
+          { 
+            id: data.maintenanceRequest._id, 
+            desc: newRequest.desc, 
+            status: 'Pending', 
+            date: new Date().toISOString().slice(0, 10) 
+          },
+        ]);
+        setNewRequest({ desc: '', image: null });
+      } else {
+        alert('Failed to submit maintenance request: ' + (data.message || 'Unknown error'));
+      }
+    } catch (error) {
+      console.error('Error submitting maintenance request:', error);
+      alert('Failed to submit maintenance request. Please try again.');
+    }
   };
 
   return (

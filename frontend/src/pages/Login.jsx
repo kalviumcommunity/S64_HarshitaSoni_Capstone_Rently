@@ -24,7 +24,7 @@ const Login = () => {
     e.preventDefault();
     setError('');
     try {
-      const response = await fetch('/api/users/login', {
+      const response = await fetch('http://localhost:5000/api/users/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -35,12 +35,13 @@ const Login = () => {
       const data = await response.json();
 
       if (data.success) {
-        // Store user data in localStorage or context if needed
+        // Store user data and token in localStorage
         localStorage.setItem('user', JSON.stringify(data.user));
+        localStorage.setItem('token', data.token);
         
         // Redirect based on role
         if (data.user.role === 'tenant') {
-          navigate('/discover');
+          navigate('/tenant-dashboard');
         } else if (data.user.role === 'landlord') {
           navigate('/landlord-dashboard');
         }
